@@ -1,0 +1,14 @@
+{
+  "name": "yobit",
+  "version": "0.0.1",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.17.1",
+    "lodash": "4.17.4"
+  },
+  "repository": {
+    "type": "git"
+  },
+  "author": "KIM ALEXANDER",
+  "license": "MIT"
+}
