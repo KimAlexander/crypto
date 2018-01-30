@@ -1,35 +1,60 @@
 const axios = require('axios');
 const _ = require('lodash');
 const moment = require('moment');
-let index = 0;
+
+let index = 1;
 
 function buildGraph(trades, firstTradeTime) {
   const periods = buildCandlesPeriod(trades, firstTradeTime);
 
-  pickHighestAndLowest(periods);
+  // pickHighestAndLowest(periods);
 }
 
 function buildCandlesPeriod(trades, firstTradeTime) {
-  let periods = [];
+  tradesByPeriods = {
+    1: []
+  }
 
   trades.forEach(trade => {
-    periods = periods.concat(buildCandleByTimePeriod(trade, firstTradeTime));
+    const byTime = buildCandleByTimePeriod(trade, firstTradeTime);
+
+    if (tradesByPeriods[byTime.index]) {
+      tradesByPeriods[byTime.index] = tradesByPeriods[byTime.index].concat(byTime.price);
+    } else {
+      tradesByPeriods[byTime.index] = [];
+      tradesByPeriods[byTime.index] = tradesByPeriods[byTime.index].concat(byTime.price);
+    }
   });
 
-  return _.filter(periods, 'price')
+  let filtered = {}
+
+   _.forEach(tradesByPeriods, (p, i) => {
+    filtered[i] = [];
+    filtered[i] = filtered[i].concat(_.min(p));
+    filtered[i] = filtered[i].concat(_.max(p));
+  })
+
+  console.log(filtered)
+  return filtered;
 }
+
+// function compileTradePeriods (periods, byTimeCompiled, minute) {
+//   if (periods[byTimeCompiled.minutes]) {
+//     periods[byTimeCompiled.minutes] = periods[byTimeCompiled.minutes].concat(byTimeCompiled.price);
+//   }
+// }
 
 function buildCandleByTimePeriod(trade, firstTradeTime) {
   let firstDate = new moment(firstTradeTime * 1000);
 
-  if (new moment(trade.timestamp * 1000) <=  firstDate.add(index ? index + 1 : 1, 'minute')) {
+  if (new moment(trade.timestamp * 1000) <=  firstDate.add(index, 'minute')) {
     return {
       index,
       price: trade.price,
       timestamp: trade.timestamp
-    }; 
+    };
   } else {
-    index++
+    return buildCandleByTimePeriod(trade, trade.timestamp, index++)
   }
 }
 
@@ -60,7 +85,6 @@ function pickHighestAndLowest(collection) {
     }
   }
 }
-
 
 axios.get('https://yobit.net/api/3/trades/btc_usd?limit=1500')
   .then((resp) => _.sortBy(resp.data['btc_usd'], 'timestamp'))
