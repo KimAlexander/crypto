@@ -1,74 +1,71 @@
-var axios = require('axios');
-var _ = require('lodash');
-var moment = require('moment');
+const axios = require('axios');
+const _ = require('lodash');
+const moment = require('moment');
+let index = 0;
 
-const _ONE_MINUTE = 60000;
-let firstTradeTime = 0;
+function buildGraph(trades, firstTradeTime) {
+  const periods = buildCandlesPeriod(trades, firstTradeTime);
 
-
-function buildGraph(trade, firstTradeTime) {
-  return buildCandlesPereod(trade, firstTradeTime, _ONE_MINUTE)
+  pickHighestAndLowest(periods);
 }
 
-function buildCandlesPereod(trade, firstTradeTime, pereod) {
-  const candels = _.filter(buildCandelByTimePereod(trade, firstTradeTime, pereod), 'price');
+function buildCandlesPeriod(trades, firstTradeTime) {
+  let periods = [];
 
-  pickHighestAndLowest(candels);
-  
-  // console.log(candels);
-         
+  trades.forEach(trade => {
+    periods = periods.concat(buildCandleByTimePeriod(trade, firstTradeTime));
+  });
+
+  return _.filter(periods, 'price')
 }
 
-var index = 0;
-var candels = [];
-var oneMinute = _ONE_MINUTE
-
-function buildCandelByTimePereod(trade, firstTradeTime, pereod) {
+function buildCandleByTimePeriod(trade, firstTradeTime) {
   let firstDate = new moment(firstTradeTime * 1000);
 
-  if (new moment(trade.timestamp * 1000) <=  firstDate.add(index || 1, 'minute')) {
-    candels = candels.concat({
+  if (new moment(trade.timestamp * 1000) <=  firstDate.add(index ? index + 1 : 1, 'minute')) {
+    return {
       index,
-      price: trade.price
-    })
+      price: trade.price,
+      timestamp: trade.timestamp
+    }; 
   } else {
     index++
   }
-
-  return candels;
 }
 
 function pickHighestAndLowest(collection) {
-  _.reduce(collection, iteratee, collection[0]);
+  console.log(_.reduce(collection, iteratee, {
+    price: collection[0].price,
+    index: 0,
+    hight: 0,
+    low: 0
+  }));
 
-  function iteratee(result, collection) {
-    if (result.index === collection.index) {
-      console.log(result.index);
-      if (result.price < collection.price) {
-        return {
-          index: collection.index,
-          price: collection.price
-        }
+  function iteratee(initial, element) {
+    if (initial.price < element.price) {
+      return {
+        index: element.index,
+        price: element.price,
+        hight: element.index,
+        low: element.price
       }
-    } else {
-      console.log(result);
-      return collection;
     }
-    // console.log(result, collection)
-    // return collection;
+    else {
+      return {
+        index: element.index,
+        price: initial.price,
+        hight: initial.index,
+        low: element.price
+      }
+    }
   }
 }
 
-function pickLowest() {
 
-}
-
-axios.get('https://yobit.net/api/3/trades/btc_usd?limit=200')
+axios.get('https://yobit.net/api/3/trades/btc_usd?limit=1500')
   .then((resp) => _.sortBy(resp.data['btc_usd'], 'timestamp'))
   .then((sorted) => {
-    sorted.forEach(trade => {
-      console.log(buildGraph(trade, sorted[0].timestamp));
-    });
+    buildGraph(sorted, sorted[0].timestamp);
   })
   .catch((e) => {
     console.log(e)
